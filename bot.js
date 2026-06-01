@@ -22,18 +22,32 @@ client.once("ready", async () => {
     const rest = new REST ({ version: "10"}).setToken(process.env.token_bot);
     const commands = [
         new SlashCommandBuilder()
-        .setName("zapisz")
-        .setDescription("Zapisz notatkę do bazy danych")
-        .addStringOption((opt) =>
-            opt.setName("tekst").setDescription("Treść").setRequired(true)
-        ),
-        new SlashCommandBuilder()
-        .setName("pobierz")
-        .setDescription("Pobieranie notatki"),
+        .setName("daily")
+        .setDescription("Odbierz Solid Dice"),
 
         new SlashCommandBuilder()
-        .setName("wieszak")
-        .setDescription("Wieszak uwu"),
+        .setName("work")
+        .setDescription("Odbierz Solid Dice"),
+
+        new SlashCommandBuilder()
+        .setName("skillissues")
+        .setDescription("Wieszak zjawia się z dupy i daje ci 5 Solid Dice"),
+
+        new SlashCommandBuilder()
+        .setName("pinkpawsheist")
+        .setDescription("Bierzesz udział w wydarzeniu - Pink Paws Heist"),
+
+        new SlashCommandBuilder()
+        .setName("kawiarnia")
+        .setDescription("Odbierz Solid Dice z kawiarni"),
+
+        new SlashCommandBuilder()
+        .setName("delivery")
+        .setDescription("Wykonaj dostawę aby odebrać Solid Dice"),
+
+        new SlashCommandBuilder()
+        .setName("łowienie")
+        .setDescription("Zacznij łowić aby odebrać nagrody")
 
     ].map((cmd) => cmd.toJSON());
 
@@ -63,26 +77,5 @@ client.on("interactionCreate", async (interaction) => {
         });
         const wiersze = wynik.rows.map((r) => r.tresc).join ("\n");
         await interaction.reply(wiersze || "Brak zapisów.");
-    }
-
-    if (interaction.commandName === "wieszak") {
-        const losowanie = Math.random();
-
-        const pochwaly = [
-            "Wieszak? Ten wieszak to LEGENDA. Respect. 🫡",
-            "Wieszak jest git, nie ma co gadać. 👍",
-            "Wieszak to szczyt ewolucji. Brawo wieszaku. 🏆",
-        ];
-
-        const wyzwizka = [
-            "Serio. 🗑️",
-            "Wieszak? Żałosny. Nawet ubrań dobrze nie trzyma. 💀",
-            "Wieszak to największa pomyłka natury. 😤",
-        ];
-
-        const lista = losowanie < 0.5 ? pochwaly : wyzwizka;
-        const wynik = lista[Math.floor(Math.random() * lista.length)];
-
-        await interaction.reply(wynik);
     }
 });
