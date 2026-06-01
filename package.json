@@ -13,6 +13,8 @@
     "vite": "^8.0.16"
   },
   "dependencies": {
+    "@libsql/client": "^0.17.3",
+    "discord.js": "^14.26.4",
     "dotenv": "^17.4.2"
   }
 }
