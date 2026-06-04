@@ -3,6 +3,7 @@ import { createClient } from "@libsql/client";
 import "dotenv/config";
 import { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder, EmbedBuilder, AttachmentBuilder, InteractionResponse} from "discord.js"
 
+const OWNER_ID = "1096839401524445264";
 const db = createClient({
     url: process.env.url_db,
     authToken: process.env.token_db,
@@ -61,7 +62,15 @@ client.once("ready", async () => {
         .setDescription("Ustaw role które mogą zarządzać botem")
         .addRoleOption((opt) =>
             opt.setName("rola").setDescription("Wybierz rolę").setRequired(true)
-    )
+        ),
+
+        new SlashCommandBuilder()
+        .setName("removecooldown")
+        .setDescription("Usuwa cooldown nakładany przez system gry")
+        .addUserOption((opt) =>
+            opt.setName("user").setDescription("Użytkownik").setRequired(true)
+        ),
+
 
 
     ].map((cmd) => cmd.toJSON());
@@ -86,7 +95,7 @@ async function checkcooldown(userId, guildId, komenda, cooldownMs) {
             const godziny = Math.floor(pozostalo / 3600000)
             const minuty = Math.floor((pozostalo % 3600000) / 60000);
             const sekundy = Math.floor((pozostalo % 60000) / 1000);
-            return `**Poczekaj jeszcze:** ${godziny}h** **${minuty}m ${sekundy}s!`;
+            return `**❗Poczekaj jeszcze:** \`${godziny}h ${minuty}m ${sekundy}s\``;
         }
     }
 
@@ -155,6 +164,22 @@ client.on("interactionCreate", async (interaction) => {
             .setThumbnail("attachment://Red_roll.jpg")
 
         await interaction.reply({ embeds: [embed], files: [obrazek]});
+    }
+
+    if (interaction.commandName === "removecooldown") {
+        if (interaction.user.id !== OWNER_ID) {
+            await interaction.reply ({ content: "❗ Nie masz uprawnień", ephemeral: true});
+            return;
+        }
+
+        const user = interaction.options.getUser("user")
+
+        await db.execute({
+            sql: "DELETE FROM cooldowny WHERE user_id = ? AND guild_id = ? and komenda IN ('daily', 'work', 'skillissues', 'pinkpawsheist', 'kawiarnia', 'delivery', 'łowienie')",
+            args: [user.id, interaction.guild.id]
+        });
+
+        await interaction.reply({ content: `Cooldowny dla wszystkich komend ekonomii zostały usunięte dla ${user}`, ephemeral: true})
     }
 
 });
