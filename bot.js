@@ -1,7 +1,7 @@
 // token_bot token_db url_db
 import { createClient } from "@libsql/client";
 import "dotenv/config";
-import { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder, EmbedBuilder, AttachmentBuilder} from "discord.js"
+import { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder, EmbedBuilder, AttachmentBuilder, InteractionResponse} from "discord.js"
 
 const db = createClient({
     url: process.env.url_db,
@@ -83,9 +83,10 @@ async function checkcooldown(userId, guildId, komenda, cooldownMs) {
         const roznica = teraz - ostatnio;
         if (roznica < cooldownMs) {
             const pozostalo =  cooldownMs - roznica;
-            const minuty = Math.floor(pozostalo / 60000);
+            const godziny = Math.floor(pozostalo / 3600000)
+            const minuty = Math.floor((pozostalo % 3600000) / 60000);
             const sekundy = Math.floor((pozostalo % 60000) / 1000);
-            return `Poczekaj jeszcze **${minuty}m ${sekundy}s**!`;
+            return `**Poczekaj jeszcze:** ${godziny}h** **${minuty}m ${sekundy}s!`;
         }
     }
 
@@ -125,6 +126,35 @@ client.on("interactionCreate", async (interaction) => {
             await interaction.reply({ content: `Te komendy możesz używać tylko na kanale <#${kanal}>!`, ephemeral: true});
             return;
         }
+    }
+
+    if (interaction.commandName === "daily") {
+        const cooldown = await checkcooldown(interaction.user.id , interaction.guild.id, "daily", 24 * 60 * 60 *1000);
+        if (cooldown) {
+            await interaction.reply({ content: cooldown, ephemeral: true});
+            return;
+        }
+        const ilosc = Math.floor(Math.random() * 5) + 10;
+        await addSolidDice(interaction.user.id, interaction.guild.id, ilosc);
+
+        const wiadomosci = [
+            "Wykonałeś/aś codzienne misje",
+            "Odebrałeś/aś daily",
+            "Wbiłeś/aś do gry i wykonałeś/aś zadania",
+            "Zalogowałeś/aś się do gry",
+        ];
+        
+        const wiadomosc = wiadomosci[Math.floor(Math.random() * wiadomosci.length)];
+        const obrazek = new AttachmentBuilder("./Gra/Red_roll.jpg");
+
+        const embed = new EmbedBuilder()
+            .setColor(0xFF0000)
+            .setTitle("🎲 Daily!")
+            .setDescription(wiadomosc)
+            .addFields({ name: "Otrzymałeś/aś", value: `**${ilosc} Solid Dice** 🎲`})
+            .setThumbnail("attachment://Red_roll.jpg")
+
+        await interaction.reply({ embeds: [embed], files: [obrazek]});
     }
 
 });
