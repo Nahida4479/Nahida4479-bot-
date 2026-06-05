@@ -1,9 +1,9 @@
 // token_bot token_db url_db
 import { createClient } from "@libsql/client";
 import "dotenv/config";
-import { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder, EmbedBuilder, AttachmentBuilder, InteractionResponse, GuildFeature} from "discord.js"
+import { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder, EmbedBuilder, AttachmentBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from "discord.js"
 
-const OWNER_ID = "1096839401524445264";
+const OWNER_ID = "339487125684617227";
 const db = createClient({
     url: process.env.url_db,
     authToken: process.env.token_db,
@@ -83,6 +83,21 @@ client.once("ready", async () => {
         .setName("plecak")
         .setDescription("Sprawdź swój plecak"),
 
+        new SlashCommandBuilder()
+        .setName("wymiana")
+        .setDescription("Wymień itemy na Solid Dice")
+        .addStringOption((opt) =>
+            opt.setName("rzadkosc")
+                .setDescription("Wybierz rzadkość")
+                .setRequired(true)
+                .addChoices(
+                    { name: "Epicki", value: "epicki" },
+                    { name: "Rzadki", value: "rzadki" },
+                    { name: "Zwykły", value: "zwykly" },
+                    { name: "Wszystkie", value: "all" },
+                )
+        ),
+
     ].map((cmd) => cmd.toJSON());
 
     await rest.put(Routes.applicationCommands(client.user.id), { body: commands });
@@ -122,10 +137,9 @@ async function checkcooldown(userId, guildId, komenda, cooldownMs) {
 
 async function addSolidDice(userId, guildId, ilosc) {
     await db.execute({
-        sql: "INSERT INTO ekonomia (user_id, guild_id, solid_dice) VALUES (?, ?, ?) ON CONFLICT(user_id, guild_id) DO UPDATE SET solid_dice = solid_dice + ?",
-        args: [userId, guildId, ilosc, ilosc],
+        sql: "INSERT INTO ekonomia (user_id, guild_id, solid_dice, solid_dice_total) VALUES (?, ?, ?, ?) ON CONFLICT(user_id, guild_id) DO UPDATE SET solid_dice = solid_dice + ?, solid_dice_total = solid_dice_total + ?",
+        args: [userId, guildId, ilosc, ilosc, ilosc, ilosc],
     });
-    
 }
 
 const POSTACIE_LEGENDARNE = ["Sakiri", "Baicang", "Hathor", "Fadia", "Daffodill", "Jiuyuan", "Hotorii", "Nanally", "Chiz"];
@@ -285,7 +299,7 @@ async function przetworzItem(userId, guildId, item) {
             sql: "INSERT INTO ekwipunek (user_id, guild_id, item_nazwa, ilosc) VALUES (?, ?, ?, ?) ON CONFLICT DO NOTHING",
             args: [userId, guildId, item.nazwa, item.ilosc],
         });
-        return { wyswietlana: `**${item.nazwa}** 🎲 (+${item.ilosc} SD)`, solidDice: item.ilosc };
+        return { wyswietlana: `**${item.nazwa}** 🎲 (+${item.ilosc} <:Red_roll:1512521789748547715>)`, solidDice: item.ilosc };
     }
 
     if (item.typ === "ilosc_losowa") {
@@ -308,7 +322,7 @@ async function przetworzItem(userId, guildId, item) {
 
         if (obecnaIlosc >= maxSzt) {
             await addSolidDice(userId, guildId, 1);
-            return { wyswietlana: `**${item.nazwa}** — masz już 6/6, otrzymujesz **+1 Solid Dice** 🎲`, solidDice: 1 };
+            return { wyswietlana: `**${item.nazwa}** — masz już 6/6, otrzymujesz **+1 Solid Dice** <:Red_roll:1512521789748547715>`, solidDice: 1 };
         }
 
         const nowaIlosc = obecnaIlosc + 1;
@@ -327,9 +341,140 @@ async function przetworzItem(userId, guildId, item) {
     return { wyswietlana: `**${item.nazwa}**`, solidDice: 0 };
 }
 
+const animacjaKlatki = [
+"```\n╔══════════════════════════╗\n║      VOID  EXCHANGE      ║\n╚══════════════════════════╝\n\n  Pobieranie itemów...\n\n  [██ ·  ·  ·  ·  ·  ·  · ]\n\n  > Selekcja itemów\n```",
+
+"```\n╔══════════════════════════╗\n║      VOID  EXCHANGE      ║\n╚══════════════════════════╝\n\n  Pobieranie itemów...\n\n  [████ ·  ·  ·  ·  ·  ·  ]\n\n  > Selekcja itemów\n```",
+
+"```\n╔══════════════════════════╗\n║      VOID  EXCHANGE      ║\n╚══════════════════════════╝\n\n  Pobieranie itemów... ✅\n\n  [██████ ·  ·  ·  ·  ·   ]\n\n  > Segregowanie itemów\n```",
+
+"```\n╔══════════════════════════╗\n║      VOID  EXCHANGE      ║\n╚══════════════════════════╝\n\n  Segregowanie: 📦 📦 📦 📦\n\n  [████████ ·  ·  ·  ·    ]\n\n  > Segregowanie itemów\n```",
+
+"```\n╔══════════════════════════╗\n║      VOID  EXCHANGE      ║\n╚══════════════════════════╝\n\n  Segregowanie: 📦 📦 📦 ✅\n\n  [██████████ ·  ·  ·     ]\n\n  > Przetwarzanie itemów na Solid Dice\n```",
+
+"```\n╔══════════════════════════╗\n║   *** VOID EXCHANGE ***  ║\n╚══════════════════════════╝\n\n       💥 💥 💥 💥 💥\n\n  [████████████ ·  ·      ]\n\n  > Przetwarzanie itemów na Solid Dice\n```",
+
+"```\n╔══════════════════════════╗\n║   *** VOID EXCHANGE ***  ║\n╚══════════════════════════╝\n\n     💥 💥 💥 💥 💥 💥\n\n  [██████████████ ·       ]\n\n  > Przetwarzanie itemów na Solid Dice\n```",
+
+"```\n╔══════════════════════════╗\n║      VOID  EXCHANGE      ║\n╚══════════════════════════╝\n\n  Krystalizacja... ✨✨✨\n\n  [████████████████ ·     ]\n\n  > Formowanie Solid Dice\n```",
+
+"```\n╔══════════════════════════╗\n║      VOID  EXCHANGE      ║\n╚══════════════════════════╝\n\n       🎲 🎲 🎲 🎲 🎲\n\n  [██████████████████ ·   ]\n\n  > Formowanie Solid Dice\n```",
+
+"```\n╔══════════════════════════╗\n║      VOID  EXCHANGE      ║\n╚══════════════════════════╝\n\n  ✅ Konwersja zakończona!\n\n  [██████████████████████]\n\n  > Solid Dice gotowe do wydania 🎲\n```",
+];
+
+async function pokazAnimacje(interaction) {
+    await interaction.editReply({ content: animacjaKlatki[0], embeds: [], components: [] });
+    for (let i = 1; i < animacjaKlatki.length; i++) {
+        await new Promise(r => setTimeout(r, 1000));
+        await interaction.editReply({ content: animacjaKlatki[i] });
+    }
+}
+
+async function policzItemy(userId, guildId, rzadkosc) {
+    const listaItemow = items[rzadkosc].filter(i => i.typ === "item" || i.typ === "ilosc_losowa");
+    const nazwy = listaItemow.map(i => i.nazwa);
+
+    if (nazwy.length === 0) return { lacznieItemow: 0, szczegoly: [] };
+
+    const placeholders = nazwy.map(() => "?").join(", ");
+    const wynik = await db.execute({
+        sql: `SELECT item_nazwa, ilosc FROM ekwipunek WHERE user_id = ? AND guild_id = ? AND item_nazwa IN (${placeholders})`,
+        args: [userId, guildId, ...nazwy],
+    });
+
+    const lacznieItemow = wynik.rows.reduce((sum, r) => sum + Number(r.ilosc), 0);
+    return { lacznieItemow, szczegoly: wynik.rows };
+}
+
 client.on("interactionCreate", async (interaction) => {
-    if (!interaction.isChatInputCommand()) return;
     if (!interaction.guild) return;
+
+    if (interaction.isButton()) {
+    if (interaction.customId.startsWith("wymiana_nie_")) {
+        await interaction.update({ content: "❌ Anulowano wymianę.", embeds: [], components: [] });
+        return;
+    }
+
+    if (interaction.customId.startsWith("wymiana_tak_")) {
+        const czesci = interaction.customId.split("_");
+        const userId = czesci[2];
+        const rzadkosc = czesci[3];
+
+        if (interaction.user.id !== userId) {
+            await interaction.reply({ content: "❗ To nie twoja wymiana!", ephemeral: true });
+            return;
+        }
+
+        await interaction.update({ content: "⏳ Przetwarzanie...", embeds: [], components: [] });
+
+        const progi = {
+            epicki: { wymagane: 20, solidDice: 2 },
+            rzadki: { wymagane: 50, solidDice: 1 },
+            zwykly: { wymagane: 130, solidDice: 1 },
+        };
+
+        const kategorie = rzadkosc === "all" ? ["epicki", "rzadki", "zwykly"] : [rzadkosc];
+        let lacznieSolidDice = 0;
+        let podsumowanie = "";
+
+        for (const kat of kategorie) {
+            const { lacznieItemow, szczegoly } = await policzItemy(interaction.user.id, interaction.guild.id, kat);
+            const prog = progi[kat];
+            const nazwyKategorii = { epicki: "Epickie", rzadki: "Rzadkie", zwykly: "Zwykłe" };
+
+            if (lacznieItemow < prog.wymagane) {
+                podsumowanie += `**${nazwyKategorii[kat]}:** Nie masz wystarczającej ilości itemów (${lacznieItemow}/${prog.wymagane})\n`;
+                continue;
+            }
+
+            const iloscWymian = Math.floor(lacznieItemow / prog.wymagane);
+            const itemowWymieniono = iloscWymian * prog.wymagane;
+            const itemowZostalo = lacznieItemow - itemowWymieniono;
+            const solidDiceZysk = iloscWymian * prog.solidDice;
+            lacznieSolidDice += solidDiceZysk;
+
+            let doUsuniecia = itemowWymieniono;
+            for (const row of szczegoly) {
+                if (doUsuniecia <= 0) break;
+                const usun = Math.min(Number(row.ilosc), doUsuniecia);
+                await db.execute({
+                    sql: "UPDATE ekwipunek SET ilosc = ilosc - ? WHERE user_id = ? AND guild_id = ? AND item_nazwa = ?",
+                    args: [usun, interaction.user.id, interaction.guild.id, row.item_nazwa],
+                });
+                doUsuniecia -= usun;
+            }
+
+            await db.execute({
+                sql: "DELETE FROM ekwipunek WHERE user_id = ? AND guild_id = ? AND ilosc <= 0",
+                args: [interaction.user.id, interaction.guild.id],
+            });
+
+            await addSolidDice(interaction.user.id, interaction.guild.id, solidDiceZysk);
+            podsumowanie += `**${nazwyKategorii[kat]}:** Wymieniono ${itemowWymieniono} itemów → +${solidDiceZysk} <:Red_roll:1512521789748547715> | Pozostało: ${itemowZostalo} itemów\n`;
+        }
+
+        if (lacznieSolidDice === 0 && !podsumowanie.includes("Wymieniono")) {
+            await interaction.editReply({ content: "❗ Nie masz wystarczającej ilości itemów do wymiany!", embeds: [], components: [] });
+            return;
+        }
+
+        await pokazAnimacje(interaction);
+
+        const embedWynik = new EmbedBuilder()
+            .setColor(lacznieSolidDice > 0 ? 0x00FF00 : 0xFF0000)
+            .setTitle("🔄 Wynik Wymiany")
+            .setDescription(podsumowanie)
+            .addFields({ name: "Łącznie zdobyte", value: `**${lacznieSolidDice} Solid Dice** 🎲` })
+            .setTimestamp();
+
+        await interaction.editReply({ content: "", embeds: [embedWynik] });
+        return;
+    }
+
+}
+
+    if (!interaction.isChatInputCommand()) return;
 
     const ustawienia = await db.execute({
         sql: "SELECT kanal_id FROM serwery WHERE guild_id = ?",
@@ -417,7 +562,7 @@ client.on("interactionCreate", async (interaction) => {
     if (interaction.commandName === "work") {
         const cooldown = await checkcooldown(interaction.user.id, interaction.guild.id, "work", 2 * 60 * 60  * 1000);
         if (cooldown) {
-            await interaction.reaply ({ content: cooldown, ephemeral: true});
+            await interaction.reply ({ content: cooldown, ephemeral: true});
             return;
         }
 
@@ -460,7 +605,7 @@ client.on("interactionCreate", async (interaction) => {
     const solidDice = portfel.rows.length > 0 ? Number(portfel.rows[0].solid_dice) : 0;
 
     if (solidDice < 10) {
-        await interaction.reply({ content: `❗ Nie masz wystarczająco Solid Dice! Masz **${solidDice}/10** 🎲`, ephemeral: true });
+        await interaction.reply({ content: `❗ Nie masz wystarczająco Solid Dice! Masz **${solidDice}/10** <:Red_roll:1512521789748547715>`, ephemeral: true });
         return;
     }
 
@@ -497,7 +642,7 @@ client.on("interactionCreate", async (interaction) => {
         .setColor(0xFF0000)
         .setTitle("🎲 Wyniki Rollowania!")
         .setDescription(lista)
-        .addFields({ name: "Solid Dice zwrot", value: `**${solidDiceZwrot} 🎲**` })
+        .addFields({ name: "Solid Dice zwrot", value: `**${solidDiceZwrot} <:Red_roll:1512521789748547715>**` })
         .setThumbnail("attachment://Red_roll.jpg")
         .setTimestamp();
 
@@ -515,12 +660,20 @@ if (interaction.commandName === "plecak") {
         args: [interaction.user.id, interaction.guild.id],
     });
 
+    const ekonomia = await db.execute({
+    sql: "SELECT solid_dice, solid_dice_total FROM ekonomia WHERE user_id = ? AND guild_id = ?",
+    args: [interaction.user.id, interaction.guild.id],
+    });
+
     if (ekwipunek.rows.length === 0 && postacie.rows.length === 0) {
         await interaction.reply({ content: "❗ Twój plecak jest pusty!", ephemeral: true });
         return;
     }
 
     let opis = "";
+
+    const sd = ekonomia.rows.length > 0 ? ekonomia.rows[0] : { solid_dice: 0, solid_dice_total: 0 };
+    opis += `<:Red_roll:1512521789748547715> **Solid Dice:** ${sd.solid_dice} (łącznie zdobyte: ${sd.solid_dice_total})\n\n`;
 
     if (postacie.rows.length > 0) {
         opis += "**🌟 Postacie:**\n";
@@ -535,10 +688,61 @@ if (interaction.commandName === "plecak") {
 
     const embed = new EmbedBuilder()
         .setColor(0x9B59B6)
-        .setTitle(`🎒 Plecak — ${interaction.user.username}`)
+        .setTitle(`🎒 Plecak - ${interaction.user.username}`)
         .setDescription(opis)
         .setTimestamp();
 
     await interaction.reply({ embeds: [embed] });
+}
+
+    if (interaction.commandName === "wymiana") {
+    const rzadkosc = interaction.options.getString("rzadkosc");
+
+    const progi = {
+        epicki: { wymagane: 20, solidDice: 2 },
+        rzadki: { wymagane: 50, solidDice: 1 },
+        zwykly: { wymagane: 130, solidDice: 1 },
+    };
+
+    const kategorie = rzadkosc === "all" ? ["epicki", "rzadki", "zwykly"] : [rzadkosc];
+    const dane = {};
+    for (const kat of kategorie) {
+        dane[kat] = await policzItemy(interaction.user.id, interaction.guild.id, kat);
+    }
+
+    const nazwyKategorii = { epicki: "Epickie", rzadki: "Rzadkie", zwykly: "Zwykłe" };
+    let opisPotwierdzenia = "**Posiadane itemy do wymiany:**\n\n";
+
+    for (const kat of kategorie) {
+        const { lacznieItemow, szczegoly } = dane[kat];
+        const prog = progi[kat];
+        opisPotwierdzenia += `**${nazwyKategorii[kat]}** (${lacznieItemow} szt. | próg: ${prog.wymagane} = ${prog.solidDice} <:Red_roll:1512521789748547715>)\n`;
+        if (szczegoly.length === 0) {
+            opisPotwierdzenia += `> Nie posiadasz itemów z tej kategorii\n`;
+        } else {
+            opisPotwierdzenia += szczegoly.map(r => `> ${r.item_nazwa} x${r.ilosc}`).join("\n") + "\n";
+        }
+        opisPotwierdzenia += "\n";
+    }
+
+    const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = await import("discord.js");
+    const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+            .setCustomId(`wymiana_tak_${interaction.user.id}_${rzadkosc}`)
+            .setLabel("Wymień")
+            .setStyle(ButtonStyle.Success),
+        new ButtonBuilder()
+            .setCustomId(`wymiana_nie_${interaction.user.id}`)
+            .setLabel("Wyjdź")
+            .setStyle(ButtonStyle.Danger),
+    );
+
+    const embed = new EmbedBuilder()
+        .setColor(0x9B59B6)
+        .setTitle("🔄 Potwierdzenie Wymiany")
+        .setDescription(opisPotwierdzenia)
+        .setFooter({ text: "Postaci nie można wymienić!" });
+
+    await interaction.reply({ embeds: [embed], components: [row], ephemeral: true });
 }
 });
