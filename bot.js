@@ -1,7 +1,7 @@
 // token_bot token_db url_db
 import { createClient } from "@libsql/client";
 import "dotenv/config";
-import { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder, EmbedBuilder, AttachmentBuilder, InteractionResponse} from "discord.js"
+import { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder, EmbedBuilder, AttachmentBuilder, InteractionResponse, GuildFeature} from "discord.js"
 
 const OWNER_ID = "1096839401524445264";
 const db = createClient({
@@ -75,8 +75,13 @@ client.once("ready", async () => {
         .setName("nteleaderboard")
         .setDescription("Tabela wyświetlające graczy według łącznej sumy zdobytych Solid Dice"),
 
+        new SlashCommandBuilder()
+        .setName("roll")
+        .setDescription("Wylosuj przedmioty"),
 
-
+        new SlashCommandBuilder()
+        .setName("plecak")
+        .setDescription("Sprawdź swój plecak"),
 
     ].map((cmd) => cmd.toJSON());
 
@@ -123,9 +128,208 @@ async function addSolidDice(userId, guildId, ilosc) {
     
 }
 
+const POSTACIE_LEGENDARNE = ["Sakiri", "Baicang", "Hathor", "Fadia", "Daffodill", "Jiuyuan", "Hotorii", "Nanally", "Chiz"];
+const POSTACIE_RZADKIE = ["Mint", "Skia", "Edagar", "Aurelia", "Adler", "Haniel"];
+
+const items = {
+    legendarny: [
+        ...POSTACIE_LEGENDARNE.map(p => ({ nazwa: p, typ: "postac_legendarna" })),
+    ],
+
+    epicki: [
+        { nazwa: "Ręcznie pisany list", typ: "item" },
+        { nazwa: "Bilet do kina", typ: "item" },
+        { nazwa: "Plastry R", typ: "item" },
+        { nazwa: "Czekolada", typ: "item" },
+        { nazwa: "Płyta z Muzyką", typ: "item" },
+        { nazwa: "Dress Sleeves of Vanity", typ: "item" },
+        { nazwa: "Good Boy Stamp", typ: "item" },
+        { nazwa: "MP3", typ: "item" },
+        { nazwa: "Chaotic Core", typ: "item" },
+        { nazwa: "Tri-key", typ: "item" },
+        { nazwa: "Umbrella ARC", typ: "item" },
+        { nazwa: "Reality Refuge ARC", typ: "item" },
+        { nazwa: "Youthful Fantasy ARC", typ: "item" },
+        { nazwa: "Camellia Society ARC", typ: "item" },
+        { nazwa: "Raging Flames ARC", typ: "item" },
+        { nazwa: "Blow up the Crowd ARC", typ: "item" },
+        { nazwa: "Tears Beneath the Mask ARC", typ: "item" },
+        { nazwa: "Eternal Waltz ARC", typ: "item" },
+        { nazwa: "Song of The Whale ARC", typ: "item" },
+        { nazwa: "Dreamless Seed", typ: "item" },
+        { nazwa: "Fluffy Cotton", typ: "item" },
+        { nazwa: "Your Happiness is Priceless ARC", typ: "item" },
+        { nazwa: "The Forgotten ARC", typ: "item" },
+        { nazwa: "Clear Skies ARC", typ: "item" },
+        { nazwa: "Shiny Days ARC", typ: "item" },
+        { nazwa: "Małpa w klatce (Nahida)", typ: "item" },
+        { nazwa: "Mind Royale ARC", typ: "item" },
+        { nazwa: "Watch Your Heads! ARC", typ: "item" },
+        { nazwa: "A Time Will Come ARC", typ: "item" },
+        { nazwa: "The Fool's Spring ARC", typ: "item" },
+        { nazwa: "Drawn Blade ARC", typ: "item" },
+        { nazwa: "Oraora! ARC", typ: "item" },
+        { nazwa: "Train Log", typ: "item" },
+        { nazwa: "Covetous Coin", typ: "item" },
+        { nazwa: "Boxer's Respect", typ: "item" },
+        { nazwa: "Magic Thread", typ: "item" },
+    ],
+    rzadki: [
+        { nazwa: "Warp Piece", typ: "ilosc_losowa", min: 1, max: 30 },
+        { nazwa: "Lost Piece", typ: "ilosc_losowa", min: 1, max: 30 },
+        { nazwa: "5x Solid Dice", typ: "solid_dice", ilosc: 5 },
+        ...POSTACIE_RZADKIE.map(p => ({ nazwa: p, typ: "postac_rzadka" })),
+        { nazwa: "Confessional Flower Seed", typ: "item" },
+        { nazwa: "Charging Knight", typ: "item" },
+        { nazwa: "Spark Plug", typ: "item" },
+        { nazwa: "A Page from Delusion's Shore", typ: "item" },
+        { nazwa: "Water Moon Pick", typ: "item" },
+        { nazwa: "Nest Guard Fragment", typ: "item" },
+        { nazwa: "Expansion Core", typ: "item" },
+        { nazwa: "Heterogeneous Unit", typ: "item" },
+        { nazwa: "Little Melon Seed", typ: "item" },
+        { nazwa: "Arcane Thread", typ: "item" },
+        { nazwa: "Blade Forging Stone", typ: "item" },
+        { nazwa: "Unextinguished Scale Armor", typ: "item" },
+        { nazwa: "Eternal Shell", typ: "item" },
+        { nazwa: "Song Scale Pattern", typ: "item" },
+        { nazwa: "Mint To Mary Mint", typ: "item" },
+        { nazwa: "Mint Leisurely Holiday", typ: "item" },
+        { nazwa: "Golden Spring", typ: "item" },
+        { nazwa: "Blue Fable", typ: "item" },
+        { nazwa: "Holy Worship Month", typ: "item" },
+        { nazwa: "Nightingale's Sonata", typ: "item" },
+        { nazwa: "Glimmering Ice", typ: "item" },
+        { nazwa: "Frytki", typ: "item" },
+        { nazwa: "Seasonal Sushi Boat", typ: "item" },
+        { nazwa: "Rose Lychee Cake", typ: "item" },
+        { nazwa: "Ebisu Royal Tower", typ: "item" },
+        { nazwa: "Mhm! Coin", typ: "item" },
+        { nazwa: "Tomato 100 Jelly Photo", typ: "item" },
+        { nazwa: "Asahi Inori - Cobalt Mayoiuta", typ: "item" },
+    ],
+
+    zwykly: [
+        { nazwa: "Yellow Glaze Vase", typ: "item" },
+        { nazwa: "Serenade", typ: "item" },
+        { nazwa: "Fantasia", typ: "item" },
+        { nazwa: "Waltz", typ: "item" },
+        { nazwa: "Variations", typ: "item" },
+        { nazwa: "Pastoral", typ: "item" },
+        { nazwa: "Elite Hunter Guide", typ: "item" },
+        { nazwa: "Battle Coins", typ: "item" },
+        { nazwa: "Scale Pattern", typ: "item" },
+        { nazwa: "Chaotic Dye", typ: "item" },
+        { nazwa: "Manhole Boss", typ: "item" },
+        { nazwa: "Dove's Flutter", typ: "item" },
+        { nazwa: "Know Weariness", typ: "item" },
+        { nazwa: "Resonance of Faith", typ: "item" },
+        { nazwa: "Suspended Whispers", typ: "item" },
+        { nazwa: "U-00NE", typ: "item" },
+        { nazwa: "Goodheart Crispy Mouse Cookie", typ: "item" },
+        { nazwa: "Manhole Crook", typ: "item" },
+        { nazwa: "Nestling's Longing", typ: "item" },
+        { nazwa: "FNG", typ: "item" },
+        { nazwa: "First Expectations", typ: "item" },
+        { nazwa: "Synchronicity of Thought", typ: "item" },
+        { nazwa: "Hesitation of The Waves", typ: "item" },
+        { nazwa: "DynamiK", typ: "item" },
+        { nazwa: "Cool-lala Spicy Snack", typ: "item" },
+        { nazwa: "Cold Brew", typ: "item" },
+        { nazwa: "Bob's Sunshine Ranch", typ: "item" },
+        { nazwa: "Saki Melon Bread", typ: "item" },
+        { nazwa: "Magi-Puff Whole Wheat Bread", typ: "item" },
+        { nazwa: "Crave Bites! Chocolate Flavor", typ: "item" },
+        { nazwa: "Gubichi Butter Flavor Chips", typ: "item" },
+        { nazwa: "Gubichi Cucumber Flavor Chips", typ: "item" },
+        { nazwa: "Gubichi Original Flavor Chips", typ: "item" },
+        { nazwa: "Refreshing Glacier", typ: "item" },
+        { nazwa: "Refreshing Fruity", typ: "item" },
+        { nazwa: "DynamiK Zero", typ: "item" },
+        { nazwa: "ApeX", typ: "item" },
+        { nazwa: "Silver Moon Waltz - Asahi Inori", typ: "item" },
+        { nazwa: "Chej czat", typ: "item" },
+        { nazwa: "Kokoro Rider L1 Series", typ: "item" },
+        { nazwa: "Kokoro Rider L2 Series", typ: "item" },
+        { nazwa: "Kokoro Rider L3 Series", typ: "item" },
+        { nazwa: "Clear Skies ARC", typ: "item" },
+        { nazwa: "Failing You, Heavy in My Heart ARC", typ: "item" },
+        { nazwa: "Drawn Blade ARC", typ: "item" },
+        { nazwa: "A Time Will Come ARC", typ: "item" },
+        { nazwa: "Annulrota", typ: "item" },
+        { nazwa: "Lost Wallet", typ: "item" },
+        { nazwa: "Bon na wyzywisko Nahidy", typ: "item" },
+    ],
+}
+
+
+
+function losujKategorie() {
+    const los = Math.random() * 100;
+    if (los < 6.67) return "legendarny";
+    else if (los < 20) return "epicki";
+    else if (los < 46.67) return "rzadki";
+    else return "zwykly";
+}
+
+function losujItem(kategoria) {
+    const lista = items[kategoria];
+    return lista[Math.floor(Math.random() * lista.length)];
+}
+
+async function przetworzItem(userId, guildId, item) {
+    
+    if (item.typ === "solid_dice") {
+        await addSolidDice(userId, guildId, item.ilosc);
+        await db.execute({
+            sql: "INSERT INTO ekwipunek (user_id, guild_id, item_nazwa, ilosc) VALUES (?, ?, ?, ?) ON CONFLICT DO NOTHING",
+            args: [userId, guildId, item.nazwa, item.ilosc],
+        });
+        return { wyswietlana: `**${item.nazwa}** 🎲 (+${item.ilosc} SD)`, solidDice: item.ilosc };
+    }
+
+    if (item.typ === "ilosc_losowa") {
+        const ilosc = Math.floor(Math.random() * (item.max - item.min + 1)) + item.min;
+        await db.execute({
+            sql: "INSERT INTO ekwipunek (user_id, guild_id, item_nazwa, ilosc) VALUES (?, ?, ?, ?) ON CONFLICT(user_id, guild_id, item_nazwa) DO UPDATE SET ilosc = ilosc + ?",
+            args: [userId, guildId, item.nazwa, ilosc, ilosc],
+        });
+        return { wyswietlana: `**${item.nazwa}** x${ilosc}`, solidDice: 0 };
+    }
+
+    if (item.typ === "postac_legendarna" || item.typ === "postac_rzadka") {
+        const maxSzt = 6;
+        const wynikPostac = await db.execute({
+            sql: "SELECT ilosc FROM postacie WHERE user_id = ? AND guild_id = ? AND postac = ?",
+            args: [userId, guildId, item.nazwa],
+        });
+
+        const obecnaIlosc = wynikPostac.rows.length > 0 ? Number(wynikPostac.rows[0].ilosc) : 0;
+
+        if (obecnaIlosc >= maxSzt) {
+            await addSolidDice(userId, guildId, 1);
+            return { wyswietlana: `**${item.nazwa}** — masz już 6/6, otrzymujesz **+1 Solid Dice** 🎲`, solidDice: 1 };
+        }
+
+        const nowaIlosc = obecnaIlosc + 1;
+        await db.execute({
+            sql: "INSERT INTO postacie (user_id, guild_id, postac, ilosc) VALUES (?, ?, ?, 1) ON CONFLICT(user_id, guild_id, postac) DO UPDATE SET ilosc = ilosc + 1",
+            args: [userId, guildId, item.nazwa],
+        });
+
+        return { wyswietlana: `**${item.nazwa}** (${nowaIlosc}/${maxSzt})`, solidDice: 0 };
+    }
+
+    await db.execute({
+        sql: "INSERT INTO ekwipunek (user_id, guild_id, item_nazwa, ilosc) VALUES (?, ?, ?, 1) ON CONFLICT(user_id, guild_id, item_nazwa) DO UPDATE SET ilosc = ilosc + 1",
+        args: [userId, guildId, item.nazwa],
+    });
+    return { wyswietlana: `**${item.nazwa}**`, solidDice: 0 };
+}
 
 client.on("interactionCreate", async (interaction) => {
     if (!interaction.isChatInputCommand()) return;
+    if (!interaction.guild) return;
 
     const ustawienia = await db.execute({
         sql: "SELECT kanal_id FROM serwery WHERE guild_id = ?",
@@ -163,9 +367,9 @@ client.on("interactionCreate", async (interaction) => {
 
         const embed = new EmbedBuilder()
             .setColor(0xFF0000)
-            .setTitle("🎲 Daily!")
+            .setTitle("<:Red_roll:1512521789748547715> Daily")
             .setDescription(wiadomosc)
-            .addFields({ name: "Otrzymałeś/aś", value: `**${ilosc} Solid Dice** 🎲`})
+            .addFields({ name: "Otrzymałeś/aś", value: `**${ilosc} Solid Dice** <:Red_roll:1512521789748547715>`})
             .setThumbnail("attachment://Red_roll.jpg")
 
         await interaction.reply({ embeds: [embed], files: [obrazek]});
@@ -193,13 +397,13 @@ client.on("interactionCreate", async (interaction) => {
             args: [interaction.guild.id],
         });
 
-        if (wynik.rows.leght === 0) {
+        if (wynik.rows.length === 0) {
             await interaction.reply({ content: "❗ Brak danych w rankingu", ephemeral: true});
             return;
         }
 
-        const lista = wynik.rown.map((row, index) => 
-            `**${index + 1}.** <@${row.user_id}> - **${row.solid_dice} Solid Dice** 🎲`
+        const lista = wynik.rows.map((row, index) => 
+            `**${index + 1}.** <@${row.user_id}> - **${row.solid_dice} <:Red_roll:1512521789748547715>** `
         ).join("\n");
 
         const embed = new EmbedBuilder()
@@ -209,4 +413,132 @@ client.on("interactionCreate", async (interaction) => {
 
         await interaction.reply({ embeds: [embed] });
     }
+
+    if (interaction.commandName === "work") {
+        const cooldown = await checkcooldown(interaction.user.id, interaction.guild.id, "work", 2 * 60 * 60  * 1000);
+        if (cooldown) {
+            await interaction.reaply ({ content: cooldown, ephemeral: true});
+            return;
+        }
+
+        const ilosc = Math.floor(Math.random() * 5) + 5;
+        await addSolidDice(interaction.user.id, interaction.guild.id, ilosc);
+
+        const wiadomosci = [
+            "Znalazłeś anomalie",
+            "Wygrałeś/aś wyścig",
+            "Użyłeś Chizz i złapałeś/aś moby do pokeballa",
+            "Twoje konto zostało solidnie dofinansowane przez Imosiek za wykonanie brudnej roboty.",
+            "Zrealizowałeś kody",
+            "Znalazłeś portfel na ulicy",
+            "Pomogłeś policji",
+            "Nie przejechałeś/aś żadnego człowieka",
+            "Zagrałeś szybką partię Mahjonga w lokalnym klubie i ograłeś stałych bywalców.",
+            "Uciekłeś/aś z więzienia",
+
+        ];
+        
+        const wiadomosc = wiadomosci[Math.floor(Math.random() * wiadomosci.length)];
+        const obrazek = new AttachmentBuilder("./Gra/Red_roll.jpg");
+
+        const embed = new EmbedBuilder()
+            .setColor(0x00FF00)
+            .setTitle("<:Red_roll:1512521789748547715> Work")
+            .setDescription(wiadomosc)
+            .addFields({ name: "Otrzymałeś/aś", value: `**${ilosc} Solid DIce** <:Red_roll:1512521789748547715>`}) 
+            .setThumbnail("attachment://Red_roll.jpg")
+
+        await interaction.reply({ embeds: [embed], files: [obrazek] });
+    }
+
+    if (interaction.commandName === "roll") {
+    const portfel = await db.execute({
+        sql: "SELECT solid_dice FROM ekonomia WHERE user_id = ? AND guild_id = ?",
+        args: [interaction.user.id, interaction.guild.id],
+    });
+
+    const solidDice = portfel.rows.length > 0 ? Number(portfel.rows[0].solid_dice) : 0;
+
+    if (solidDice < 10) {
+        await interaction.reply({ content: `❗ Nie masz wystarczająco Solid Dice! Masz **${solidDice}/10** 🎲`, ephemeral: true });
+        return;
+    }
+
+    await db.execute({
+        sql: "UPDATE ekonomia SET solid_dice = solid_dice - 10 WHERE user_id = ? AND guild_id = ?",
+        args: [interaction.user.id, interaction.guild.id],
+    });
+
+    const wylosowane = [];
+    let solidDiceZwrot = 0;
+
+    for (let i = 0; i < 10; i++) {
+        const kategoria = losujKategorie();
+        const item = losujItem(kategoria);
+        const wynik = await przetworzItem(interaction.user.id, interaction.guild.id, item);
+        wylosowane.push({ ...wynik, kategoria });
+        solidDiceZwrot += wynik.solidDice;
+    }
+
+    const emoji = {
+        legendarny: "🌟",
+        epicki: "💜",
+        rzadki: "💙",
+        zwykly: "⬜",
+    };
+
+    const lista = wylosowane.map((w, i) =>
+        `${i + 1}. ${emoji[w.kategoria]} ${w.wyswietlana}`
+    ).join("\n");
+
+    const obrazek = new AttachmentBuilder("./Gra/Red_roll.jpg");
+
+    const embed = new EmbedBuilder()
+        .setColor(0xFF0000)
+        .setTitle("🎲 Wyniki Rollowania!")
+        .setDescription(lista)
+        .addFields({ name: "Solid Dice zwrot", value: `**${solidDiceZwrot} 🎲**` })
+        .setThumbnail("attachment://Red_roll.jpg")
+        .setTimestamp();
+
+    await interaction.reply({ embeds: [embed], files: [obrazek] });
+}
+
+if (interaction.commandName === "plecak") {
+    const ekwipunek = await db.execute({
+        sql: "SELECT item_nazwa, ilosc FROM ekwipunek WHERE user_id = ? AND guild_id = ? ORDER BY item_nazwa ASC",
+        args: [interaction.user.id, interaction.guild.id],
+    });
+
+    const postacie = await db.execute({
+        sql: "SELECT postac, ilosc FROM postacie WHERE user_id = ? AND guild_id = ? ORDER BY postac ASC",
+        args: [interaction.user.id, interaction.guild.id],
+    });
+
+    if (ekwipunek.rows.length === 0 && postacie.rows.length === 0) {
+        await interaction.reply({ content: "❗ Twój plecak jest pusty!", ephemeral: true });
+        return;
+    }
+
+    let opis = "";
+
+    if (postacie.rows.length > 0) {
+        opis += "**🌟 Postacie:**\n";
+        opis += postacie.rows.map(r => `${r.postac} (${r.ilosc}/6)`).join("\n");
+        opis += "\n\n";
+    }
+
+    if (ekwipunek.rows.length > 0) {
+        opis += "**🎒 Przedmioty:**\n";
+        opis += ekwipunek.rows.map(r => `${r.item_nazwa} x${r.ilosc}`).join("\n");
+    }
+
+    const embed = new EmbedBuilder()
+        .setColor(0x9B59B6)
+        .setTitle(`🎒 Plecak — ${interaction.user.username}`)
+        .setDescription(opis)
+        .setTimestamp();
+
+    await interaction.reply({ embeds: [embed] });
+}
 });
