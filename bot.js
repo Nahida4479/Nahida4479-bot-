@@ -71,6 +71,11 @@ client.once("ready", async () => {
             opt.setName("user").setDescription("Użytkownik").setRequired(true)
         ),
 
+        new SlashCommandBuilder()
+        .setName("nteleaderboard")
+        .setDescription("Tabela wyświetlające graczy według łącznej sumy zdobytych Solid Dice"),
+
+
 
 
     ].map((cmd) => cmd.toJSON());
@@ -182,4 +187,26 @@ client.on("interactionCreate", async (interaction) => {
         await interaction.reply({ content: `Cooldowny dla wszystkich komend ekonomii zostały usunięte dla ${user}`, ephemeral: true})
     }
 
+    if (interaction.commandName === "nteleaderboard") {
+        const wynik = await db.execute ({
+            sql: "SELECT user_id, solid_dice FROM ekonomia WHERE guild_id = ? ORDER BY solid_dice DESC LIMIT 10",
+            args: [interaction.guild.id],
+        });
+
+        if (wynik.rows.leght === 0) {
+            await interaction.reply({ content: "❗ Brak danych w rankingu", ephemeral: true});
+            return;
+        }
+
+        const lista = wynik.rown.map((row, index) => 
+            `**${index + 1}.** <@${row.user_id}> - **${row.solid_dice} Solid Dice** 🎲`
+        ).join("\n");
+
+        const embed = new EmbedBuilder()
+            .setColor(0xFFD700)
+            .setTitle("🏆 Ranking Solid Dice")
+            .setDescription(lista);
+
+        await interaction.reply({ embeds: [embed] });
+    }
 });
