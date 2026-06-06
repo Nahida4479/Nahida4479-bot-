@@ -76,6 +76,6 @@ The bot uses **Turso (libSQL)** — a free cloud LibSQL database. Tables are cre
 
 ## 🛠️ Technologies
 
-- [discord.js](https://discord.js.org/) — Discord library
-- [Turso / libSQL](https://turso.tech/) — database
-- [dotenv](https://www.npmjs.com/package/dotenv) — environment variables
+- [discord.js](https://discord.js.org/) - Discord library
+- [Turso / libSQL](https://turso.tech/) - database
+- [dotenv](https://www.npmjs.com/package/dotenv) - environment variables
