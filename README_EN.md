@@ -33,7 +33,7 @@ node bot.js
 
 ## 🗄️ Database
 
-The bot uses **Turso (libSQL)** — a free cloud LibSQL database. Tables are created automatically on first launch:
+The bot uses **Turso (libSQL)** - a free cloud LibSQL database. Tables are created automatically on first launch:
 
 | Table | Description |
 |---|---|
