@@ -1,6 +1,6 @@
 # 🎲 Nahida4479 Bot
 
-Bot Discord dla polskiej społeczności **Neverness to Everness**, napisany w JavaScript z użyciem **discord.js**. Oferuje system ekonomii oparty na **Solid Dice**, gacha rollowanie oraz zarządzanie serwerem.
+Bot Discord dla polskiej społeczności **Neverness to Everness**, napisany w JavaScript z użyciem **discord.js**. Oferuje system ekonomii oparty na **Solid Dice**, rollowaniu oraz zarządzanie serwerem.
 
 ---
 
@@ -33,7 +33,7 @@ node bot.js
 
 ## 🗄️ Baza danych
 
-Bot używa **Turso (libSQL)** — bezpłatnej bazy danych SQLite w chmurze. Tabele tworzone są automatycznie przy pierwszym uruchomieniu:
+Bot używa **Turso (libSQL)** - bezpłatnej bazy danych LibSQL w chmurze. Tabele tworzone są automatycznie przy pierwszym uruchomieniu:
 
 | Tabela | Opis |
 |---|---|
@@ -53,15 +53,15 @@ Bot używa **Turso (libSQL)** — bezpłatnej bazy danych SQLite w chmurze. Tabe
 | `/work` | Zarabiaj Solid Dice | 2h |
 | `/kawiarnia` | Odbierz Solid Dice z kawiarni | 4h |
 | `/pinkpawsheist` | Weź udział w Pink Paws Heist | 48h |
-| `/delivery` | Wykonaj dostawę po odebranie Solid Dice | 24h |
-| `/łowienie` | Łów aby zdobyć nagrody | 10 min |
+| `/delivery` | Wykonaj dostawę aby odebrać Solid Dice | 24h |
+| `/łowienie` | Łów aby zdobyć solid dice | 10 min |
 | `/roll` | Wylosuj 10 przedmiotów za 10 Solid Dice | brak |
-| `/plecak` | Sprawdź swój ekwipunek i postacie | brak |
+| `/plecak` | Sprawdź posiadane itemy oraz postacie | brak |
 | `/wymiana` | Wymień itemy na Solid Dice | brak |
-| `/nteleaderboard` | Ranking graczy według WSZYSTKICH zdobytych Solid Dice | brak |
+| `/nteleaderboard` | Ranking graczy według **WSZYSTKICH** zdobytych Solid Dice przez danego użytkownika | brak |
 | `/ntegra` | Ustaw kanał do komend ekonomii *(admin)* | brak |
 | `/administracja` | Ustaw rolę zarządzającą botem *(admin)* | brak |
-| `/removecooldown` | Usuń cooldown gracza *(właściciel - osoba zdefiniowana pod OWNER_IDS)* | brak |
+| `/removecooldown` | Usuń **JEDNORAZOWO** cooldown gracza *(właściciel - osoba zdefiniowana pod OWNER_IDS)* | brak |
 
 ---
 
@@ -70,7 +70,7 @@ Bot używa **Turso (libSQL)** — bezpłatnej bazy danych SQLite w chmurze. Tabe
 - Zdobywaj **Solid Dice** przez komendy dzienne
 - Używaj `/roll` aby losować przedmioty i postacie
 - Zbieraj **6 kopii postaci** aby odblokować bonusy
-- Wymieniaj nadmiarowe przedmioty na Solid Dice przez `/wymiana`
+- Wymieniaj przedmioty na Solid Dice przez `/wymiana`
 
 ---
 
