@@ -3,7 +3,53 @@ import { createClient } from "@libsql/client";
 import "dotenv/config";
 import { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder, EmbedBuilder, AttachmentBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from "discord.js"
 
-const OWNER_ID = "1096839401524445264";
+async function inicjalizujBaze() {
+    try {
+        await db.execute(`CREATE TABLE IF NOT EXISTS ekonomia (
+            user_id TEXT, 
+            guild_id TEXT, 
+            solid_dice INTEGER DEFAULT 0, 
+            solid_dice_total INTEGER DEFAULT 0,
+            PRIMARY KEY (user_id, guild_id)
+        )`);
+
+        await db.execute(`CREATE TABLE IF NOT EXISTS ekwipunek (
+            user_id TEXT, 
+            guild_id TEXT, 
+            item_nazwa TEXT, 
+            ilosc INTEGER DEFAULT 0,
+            PRIMARY KEY (user_id, guild_id, item_nazwa)
+        )`);
+
+        await db.execute(`CREATE TABLE IF NOT EXISTS postacie (
+            user_id TEXT, 
+            guild_id TEXT, 
+            postac TEXT, 
+            ilosc INTEGER DEFAULT 0,
+            PRIMARY KEY (user_id, guild_id, postac)
+        )`);
+
+        await db.execute(`CREATE TABLE IF NOT EXISTS cooldowny (
+            user_id TEXT, 
+            guild_id TEXT, 
+            komenda TEXT, 
+            ostatnio INTEGER,
+            PRIMARY KEY (user_id, guild_id, komenda)
+        )`);
+
+        await db.execute(`CREATE TABLE IF NOT EXISTS serwery (
+            guild_id TEXT PRIMARY KEY, 
+            kanal_id TEXT
+        )`);
+
+        console.log("Baza danych turso działa poprawnie");
+    } catch (err) {
+        console.error("Błąd podczas tworzenia tabel:", err);
+    }
+
+}
+
+const OWNER_IDS = ["1096839401524445264", "339487125684617227", "897497223380762624", "663480441772310556"  ]; // Nahida, Mia, Mlufka, Wieszak
 const db = createClient({
     url: process.env.url_db,
     authToken: process.env.token_db,
@@ -18,6 +64,7 @@ const client = new Client({
 });
 
 client.once("ready", async () => {
+    await inicjalizujBaze();
     console.log(`Zalogowano jako ${client.user.tag}`);
 
     const rest = new REST ({ version: "10"}).setToken(process.env.token_bot);
@@ -612,8 +659,8 @@ client.on("interactionCreate", async (interaction) => {
     }
 
     if (interaction.commandName === "removecooldown") {
-        if (interaction.user.id !== OWNER_ID) {
-            await interaction.reply ({ content: "❗ Nie masz uprawnień", ephemeral: true});
+        if (!OWNER_IDS.includes(interaction.user.id)) {
+            await interaction.reply({ content: "❗ Nie masz uprawnień", ephemeral: true });
             return;
         }
 
@@ -629,7 +676,7 @@ client.on("interactionCreate", async (interaction) => {
 
     if (interaction.commandName === "nteleaderboard") {
         const wynik = await db.execute ({
-            sql: "SELECT user_id, solid_dice FROM ekonomia WHERE guild_id = ? ORDER BY solid_dice DESC LIMIT 10",
+            sql: "SELECT user_id, solid_dice_total FROM ekonomia WHERE guild_id = ? ORDER BY solid_dice_total DESC LIMIT 10",
             args: [interaction.guild.id],
         });
 
@@ -638,10 +685,9 @@ client.on("interactionCreate", async (interaction) => {
             return;
         }
 
-        const lista = wynik.rows.map((row, index) => 
-            `**${index + 1}.** <@${row.user_id}> - **${row.solid_dice} <:Red_roll:1512521789748547715>** `
-        ).join("\n");
-
+        const lista = wynik.rows.map((row, index) =>
+        `**${index + 1}.** <@${row.user_id}> - **${row.solid_dice_total} <:Red_roll:1512521789748547715>** `
+            ).join("\n");
         const embed = new EmbedBuilder()
             .setColor(0xFFD700)
             .setTitle("🏆 Ranking Solid Dice")
@@ -665,7 +711,7 @@ client.on("interactionCreate", async (interaction) => {
             "Wygrałeś/aś wyścig",
             "Użyłeś Chizz i złapałeś/aś moby do pokeballa",
             "Twoje konto zostało solidnie dofinansowane przez Imosiek za wykonanie brudnej roboty.",
-            "Zrealizowałeś kody",
+            "Zrealizowałeś/aś kody",
             "Znalazłeś portfel na ulicy",
             "Pomogłeś policji",
             "Nie przejechałeś/aś żadnego człowieka",
@@ -749,7 +795,7 @@ client.on("interactionCreate", async (interaction) => {
 
 if (interaction.commandName === "plecak") {
     const ekwipunek = await db.execute({
-        sql: "SELECT item_nazwa, ilosc FROM ekwipunek WHERE user_id = ? AND guild_id = ? ORDER BY item_nazwa ASC",
+        sql: "SELECT item_nazwa, ilosc FROM ekwipunek WHERE user_id = ? AND guild_id = ?",
         args: [interaction.user.id, interaction.guild.id],
     });
 
@@ -759,88 +805,108 @@ if (interaction.commandName === "plecak") {
     });
 
     const ekonomia = await db.execute({
-    sql: "SELECT solid_dice, solid_dice_total FROM ekonomia WHERE user_id = ? AND guild_id = ?",
-    args: [interaction.user.id, interaction.guild.id],
+        sql: "SELECT solid_dice, solid_dice_total FROM ekonomia WHERE user_id = ? AND guild_id = ?",
+        args: [interaction.user.id, interaction.guild.id],
     });
 
-    if (ekwipunek.rows.length === 0 && postacie.rows.length === 0) {
-        await interaction.reply({ content: "❗ Twój plecak jest pusty!", ephemeral: true });
-        return;
-    }
-
-    let opis = "";
-
-    const sd = ekonomia.rows.length > 0 ? ekonomia.rows[0] : { solid_dice: 0, solid_dice_total: 0 };
-    opis += `<:Red_roll:1512521789748547715> **Solid Dice:** ${sd.solid_dice} (łącznie zdobyte: ${sd.solid_dice_total})\n\n`;
-
-    if (postacie.rows.length > 0) {
-        opis += "**🌟 Postacie:**\n";
-        opis += postacie.rows.map(r => `${r.postac} (${r.ilosc}/6)`).join("\n");
-        opis += "\n\n";
-    }
-
-    if (ekwipunek.rows.length > 0) {
-        opis += "**🎒 Przedmioty:**\n";
-        opis += ekwipunek.rows.map(r => `${r.item_nazwa} x${r.ilosc}`).join("\n");
-    }
-
-    const embed = new EmbedBuilder()
-        .setColor(0x9B59B6)
-        .setTitle(`🎒 Plecak - ${interaction.user.username}`)
-        .setDescription(opis)
-        .setTimestamp();
-
-    await interaction.reply({ embeds: [embed] });
-}
-
-    if (interaction.commandName === "wymiana") {
-    const rzadkosc = interaction.options.getString("rzadkosc");
-
-    const progi = {
-        epicki: { wymagane: 20, solidDice: 2 },
-        rzadki: { wymagane: 50, solidDice: 1 },
-        zwykly: { wymagane: 130, solidDice: 1 },
+    const zdjeciaPostaci = {
+        "Adler": "Adler.jpg",
+        "Jiuyuan": "Jiuyuan.jpg"
     };
 
-    const kategorie = rzadkosc === "all" ? ["epicki", "rzadki", "zwykly"] : [rzadkosc];
-    const dane = {};
-    for (const kat of kategorie) {
-        dane[kat] = await policzItemy(interaction.user.id, interaction.guild.id, kat);
+    let epickieSzt = 0, rzadkieSzt = 0, zwykleSzt = 0;
+    const nazwyEpickie = items.epicki.map(i => i.nazwa);
+    const nazwyRzadkie = items.rzadki.map(i => i.nazwa);
+    const nazwyZwykle = items.zwykly.map(i => i.nazwa);
+
+    for (const wiersz of ekwipunek.rows) {
+        const ilosc = Number(wiersz.ilosc);
+        if (nazwyEpickie.includes(wiersz.item_nazwa)) epickieSzt += ilosc;
+        else if (nazwyRzadkie.includes(wiersz.item_nazwa)) rzadkieSzt += ilosc;
+        else if (nazwyZwykle.includes(wiersz.item_nazwa)) zwykleSzt += ilosc;
     }
 
-    const nazwyKategorii = { epicki: "Epickie", rzadki: "Rzadkie", zwykly: "Zwykłe" };
-    let opisPotwierdzenia = "**Posiadane itemy do wymiany:**\n\n";
+    const sumaRolli = ekonomia.rows.length > 0 ? ekonomia.rows[0].solid_dice_total / 10 : 0;
+    const pozycjaTop = 3;
+    const maxStron = postacie.rows.length + 1;
 
-    for (const kat of kategorie) {
-        const { lacznieItemow, szczegoly } = dane[kat];
-        const prog = progi[kat];
-        opisPotwierdzenia += `**${nazwyKategorii[kat]}** (${lacznieItemow} szt. | próg: ${prog.wymagane} = ${prog.solidDice} <:Red_roll:1512521789748547715>)\n`;
-        if (szczegoly.length === 0) {
-            opisPotwierdzenia += `> Nie posiadasz itemów z tej kategorii\n`;
-        } else {
-            opisPotwierdzenia += szczegoly.map(r => `> ${r.item_nazwa} x${r.ilosc}`).join("\n") + "\n";
+    // Funkcja generująca zawartość danej strony w locie
+    const generujStrone = (indeks) => {
+        if (indeks === 0) {
+            const embed = new EmbedBuilder()
+                .setColor(0x2B2D31)
+                .setTitle(`Plecak - ${interaction.user.username}`)
+                .setDescription(`**Itemy:**\nEpickie x${epickieSzt}\nRzadkie x${rzadkieSzt}\nZwykłe x${zwykleSzt}`)
+                .setFooter({ text: `Strona 1 / ${maxStron}` });
+            return { embeds: [embed], files: [] };
         }
-        opisPotwierdzenia += "\n";
+
+        const p = postacie.rows[indeks - 1];
+        const embed = new EmbedBuilder()
+            .setColor(0x2B2D31)
+            .setDescription(`**Postać: ${p.postac}**\n\n**Zgromadzone kopie**\n**Kopie:** ${p.ilosc}/6\n\n**Statystyki Konta**\n**Rolle:** ${Math.floor(sumaRolli)} | **Top:** #${pozycjaTop}`)
+            .setFooter({ text: `Strona ${indeks + 1} / ${maxStron}` });
+
+        const pliki = [];
+        if (zdjeciaPostaci[p.postac]) {
+            const nazwaPliku = zdjeciaPostaci[p.postac];
+            const attachment = new AttachmentBuilder(`./Gra/${nazwaPliku}`);
+            embed.setImage(`attachment://${nazwaPliku}`);
+            pliki.push(attachment);
+        }
+
+        return { embeds: [embed], files: pliki };
+    };
+
+    const przyciskPoprzedni = new ButtonBuilder().setCustomId("poprzednia").setLabel("Poprzedni").setStyle(ButtonStyle.Primary).setDisabled(true);
+    const przyciskNastepny = new ButtonBuilder().setCustomId("nastepna").setLabel("Nastepny").setStyle(ButtonStyle.Primary).setDisabled(maxStron <= 1);
+    const wierszPrzyciskow = new ActionRowBuilder().addComponents(przyciskPoprzedni, przyciskNastepny);
+
+    let aktualnaStrona = 0;
+    const poczatkowaStrona = generujStrone(aktualnaStrona);
+
+    const wiadomosc = await interaction.reply({
+        embeds: poczatkowaStrona.embeds,
+        files: poczatkowaStrona.files,
+        components: [wierszPrzyciskow],
+        fetchReply: true
+    });
+
+    const filter = (i) => i.user.id === interaction.user.id;
+    const collector = wiadomosc.createMessageComponentCollector({ filter, time: 60000 });
+
+    collector.on("collect", async (i) => {
+    try {
+        if (i.customId === "poprzednia") aktualnaStrona--;
+        else if (i.customId === "nastepna") aktualnaStrona++;
+
+        przyciskPoprzedni.setDisabled(aktualnaStrona === 0);
+        przyciskNastepny.setDisabled(aktualnaStrona === maxStron - 1);
+
+        const nowaStrona = generujStrone(aktualnaStrona);
+
+        await i.update({
+            embeds: nowaStrona.embeds,
+            files: nowaStrona.files,
+            components: [new ActionRowBuilder().addComponents(przyciskPoprzedni, przyciskNastepny)]
+        });
+    } catch (error) {
+        console.error("Błąd podczas aktualizacji plecaka:", error);
     }
+});
 
-    const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = await import("discord.js");
-    const row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-            .setCustomId(`wymiana_tak_${interaction.user.id}_${rzadkosc}`)
-            .setLabel("Wymień")
-            .setStyle(ButtonStyle.Success),
-        new ButtonBuilder()
-            .setCustomId(`wymiana_nie_${interaction.user.id}`)
-            .setLabel("Wyjdź")
-            .setStyle(ButtonStyle.Danger),
-    );
-
-    const embed = new EmbedBuilder()
-        .setColor(0x9B59B6)
-        .setTitle("🔄 Potwierdzenie Wymiany")
-        .setDescription(opisPotwierdzenia)
-        .setFooter({ text: "Postaci nie można wymienić!" });
-
-    await interaction.reply({ embeds: [embed], components: [row], ephemeral: true });
+    collector.on("end", () => {
+        przyciskPoprzedni.setDisabled(true);
+        przyciskNastepny.setDisabled(true);
+        wiadomosc.edit({ components: [new ActionRowBuilder().addComponents(przyciskPoprzedni, przyciskNastepny)] }).catch(() => {});
+    });
 }
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('Nieobsłużone odrzucenie:', reason);
+});
+
+process.on('uncaughtException', (error) => {
+    console.error('Krytyczny błąd bota:', error);
+});
+
 });
