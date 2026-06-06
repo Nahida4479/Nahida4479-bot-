@@ -60,7 +60,7 @@ Bot używa **Turso (libSQL)** - bezpłatnej bazy danych LibSQL w chmurze. Tabele
 | `/wymiana` | Wymień itemy na Solid Dice | brak |
 | `/nteleaderboard` | Ranking graczy według **WSZYSTKICH** zdobytych Solid Dice przez danego użytkownika | brak |
 | `/ntegra` | Ustaw kanał do komend ekonomii *(admin)* | brak |
-| `/administracja` | Ustaw rolę zarządzającą botem *(admin)* | brak |
+| `/administracja` | Ustaw rolę zarządzającą botem *(właściciel)* | brak |
 | `/removecooldown` | Usuń **JEDNORAZOWO** cooldown gracza *(właściciel - osoba zdefiniowana pod OWNER_IDS)* | brak |
 
 ---
