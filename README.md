@@ -51,18 +51,17 @@ Bot używa **Turso (libSQL)** — bezpłatnej bazy danych SQLite w chmurze. Tabe
 |---|---|---|
 | `/daily` | Odbierz dzienne Solid Dice | 24h |
 | `/work` | Zarabiaj Solid Dice | 2h |
-| `/skillissues` | Wieszak pojawia się z megafonem i daje 5 SD | 5 min |
 | `/kawiarnia` | Odbierz Solid Dice z kawiarni | 4h |
 | `/pinkpawsheist` | Weź udział w Pink Paws Heist | 48h |
-| `/delivery` | Wykonaj dostawę po Solid Dice | 24h |
+| `/delivery` | Wykonaj dostawę po odebranie Solid Dice | 24h |
 | `/łowienie` | Łów aby zdobyć nagrody | 10 min |
 | `/roll` | Wylosuj 10 przedmiotów za 10 Solid Dice | brak |
 | `/plecak` | Sprawdź swój ekwipunek i postacie | brak |
 | `/wymiana` | Wymień itemy na Solid Dice | brak |
-| `/nteleaderboard` | Ranking graczy według zdobytych Solid Dice | brak |
+| `/nteleaderboard` | Ranking graczy według WSZYSTKICH zdobytych Solid Dice | brak |
 | `/ntegra` | Ustaw kanał do komend ekonomii *(admin)* | brak |
 | `/administracja` | Ustaw rolę zarządzającą botem *(admin)* | brak |
-| `/removecooldown` | Usuń cooldown gracza *(właściciel)* | brak |
+| `/removecooldown` | Usuń cooldown gracza *(właściciel - osoba zdefiniowana pod OWNER_IDS)* | brak |
 
 ---
 
@@ -79,5 +78,4 @@ Bot używa **Turso (libSQL)** — bezpłatnej bazy danych SQLite w chmurze. Tabe
 
 - [discord.js](https://discord.js.org/) — biblioteka Discord
 - [Turso / libSQL](https://turso.tech/) — baza danych
-- [jimp](https://www.npmjs.com/package/jimp) — generowanie obrazków
 - [dotenv](https://www.npmjs.com/package/dotenv) — zmienne środowiskowe
