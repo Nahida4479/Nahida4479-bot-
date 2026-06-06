@@ -76,6 +76,6 @@ Bot używa **Turso (libSQL)** — bezpłatnej bazy danych SQLite w chmurze. Tabe
 
 ## 🛠️ Technologie
 
-- [discord.js](https://discord.js.org/) — biblioteka Discord
-- [Turso / libSQL](https://turso.tech/) — baza danych
-- [dotenv](https://www.npmjs.com/package/dotenv) — zmienne środowiskowe
+- [discord.js](https://discord.js.org/) - biblioteka Discord
+- [Turso / libSQL](https://turso.tech/) - baza danych
+- [dotenv](https://www.npmjs.com/package/dotenv) - zmienne środowiskowe
