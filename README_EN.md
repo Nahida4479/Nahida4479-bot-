@@ -61,7 +61,7 @@ The bot uses **Turso (libSQL)** - a free cloud LibSQL database. Tables are creat
 | `/nteleaderboard` | Player ranking by **ALL** Solid Dice ever earned | none |
 | `/ntegra` | Set the economy commands channel *(admin)* | none |
 | `/administracja` | Set the bot management role *(owner)* | none |
-| `/removecooldown` | Remove a player's cooldown **ONCE** *(owner — defined in OWNER_IDS)* | none |
+| `/removecooldown` | Remove a player's cooldown **ONCE** *(owner - defined in OWNER_IDS)* | none |
 
 ---
 
