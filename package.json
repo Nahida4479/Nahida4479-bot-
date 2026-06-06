@@ -14,10 +14,13 @@
     "vite": "^8.0.16"
   },
   "dependencies": {
+    "@jimp/custom": "^0.22.12",
+    "@jimp/plugin-print": "^1.6.1",
+    "@jimp/types": "^1.6.1",
     "@libsql/client": "^0.17.3",
     "discord.js": "^14.26.4",
     "dotenv": "^17.4.2",
-    "jimp": "^1.6.1",
+    "jimp": "^0.20.0",
     "sharp": "^0.34.5"
   }
 }

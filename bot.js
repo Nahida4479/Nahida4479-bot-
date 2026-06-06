@@ -3,7 +3,7 @@ import { createClient } from "@libsql/client";
 import "dotenv/config";
 import { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder, EmbedBuilder, AttachmentBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from "discord.js"
 
-const OWNER_ID = "339487125684617227";
+const OWNER_ID = "1096839401524445264";
 const db = createClient({
     url: process.env.url_db,
     authToken: process.env.token_db,
@@ -387,6 +387,97 @@ async function policzItemy(userId, guildId, rzadkosc) {
     return { lacznieItemow, szczegoly: wynik.rows };
 }
 
+const rollAnimacja = [
+`\`\`\`
+  Przygotowanie do rzutu...
+
+     o
+    /|\\
+    / \\
+
+  [🎲 trzyma Solid Dice]
+\`\`\``,
+
+`\`\`\`
+  Zamach...
+
+    o
+   /|\\__🎲
+    / \\
+
+  >>> ZAMACH <
+\`\`\``,
+
+`\`\`\`
+  RZUT!
+
+    o    🎲
+   /|   ~~~>
+    / \\
+
+  >>> LECIIIII <
+\`\`\``,
+
+`\`\`\`
+  Solid Dice w locie...
+
+    o        🎲
+   /|        ~~~>
+    / \\
+
+  >>>>>>>>>>>>>>>
+\`\`\``,
+
+`\`\`\`
+  Zderzenie!
+
+    o          💥
+   /|
+    / \\
+
+  *** BOOM ***
+\`\`\``,
+
+`\`\`\`
+  Pobieranie...
+
+    o        🌀
+   /|       ~~~~
+    / \\
+
+  ~ ~ ~ ~ ~ ~ ~
+\`\`\``,
+
+`\`\`\`
+  Losowanie...
+
+    o       ✨✨✨
+   /|      ✨   ✨
+    / \\     ✨✨✨
+
+  ??? ??? ??? ???
+\`\`\``,
+
+`\`\`\`
+  Przedmioty się materializują!
+
+    o     📦💜💙⬜
+   /|\\    ||||||||
+    / \\
+
+  !! GOTOWE !!
+\`\`\``,
+];
+
+async function pokazRollAnimacje(interaction) {
+    const msg = await interaction.reply({ content: rollAnimacja[0], fetchReply: true });
+    for (let i = 1; i < rollAnimacja.length; i++) {
+        await new Promise(r => setTimeout(r, 600));
+        await msg.edit(rollAnimacja[i]);
+    }
+    await new Promise(r => setTimeout(r, 400));
+}
+
 client.on("interactionCreate", async (interaction) => {
     if (!interaction.guild) return;
 
@@ -580,6 +671,12 @@ client.on("interactionCreate", async (interaction) => {
             "Nie przejechałeś/aś żadnego człowieka",
             "Zagrałeś szybką partię Mahjonga w lokalnym klubie i ograłeś stałych bywalców.",
             "Uciekłeś/aś z więzienia",
+            "Poprawnie wykonałeś zadanie", 
+            "Szef nie miał dziś do Ciebie pretensji", 
+            "Zwykły dzień w pracy dobra robota",
+            "Nie zapomniałeś parasola jak dziś wracałeś/aś z pracy", 
+            "Wieszak nie wystrzelił Nahidy z procy",
+            "Wieszak nie powiedział skill issues",
 
         ];
         
@@ -646,7 +743,8 @@ client.on("interactionCreate", async (interaction) => {
         .setThumbnail("attachment://Red_roll.jpg")
         .setTimestamp();
 
-    await interaction.reply({ embeds: [embed], files: [obrazek] });
+    await pokazRollAnimacje(interaction);
+    await interaction.editReply({ content: "", embeds: [embed], files: [obrazek] });
 }
 
 if (interaction.commandName === "plecak") {
