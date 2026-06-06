@@ -13,8 +13,7 @@ Bot Discord dla polskiej społeczności **Neverness to Everness**, napisany w Ja
 ## ⚙️ Instalacja
 
 ```bash
-git clone https://github.com/twoj-nick/bot
-cd bot
+git clone [https://github.com/Nahida4479/Nahida4479-bot.git]
 npm install
 ```
 
